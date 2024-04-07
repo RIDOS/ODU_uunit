@@ -45,73 +45,40 @@ def adams_2(x_values, y_values, h, end_x):
     
     return x_values, y_values
 
-# Вывод результатов в консоль
-def print_results(x_values1, y_values1, y_values2, exact_values, error_values):
-    print("{:<10} {:<25} {:<25} {:<25} {:<25}".format(
-        'Отрезок', 'Приблизительное (h=0.1)', 
-        'Уточненное (h=0.1)', 'Точное решение', 'Погрешность'))
-    
-    for x, y1, y2, exact, error in zip(x_values1, y_values1, y_values2, exact_values, error_values):
-        print("{:<10.5f} {:<25.5f} {:<25.5f} {:<25.5f} {:<25.5f}".format(x, y1, y2, exact, error))
+if __name__ == '__main__':
+    # Задаем начальные значения
+    x0 = 1.0
+    y0 = np.exp(1.0)
+    end_x = 2.0
+    h = 0.1
 
+    # Вычисляем первые пять точек методом Рунге-Кутта
+    x_values_rk, y_values_rk = runge_kutta_2(x0, y0, h, x0 + 0.5*h*4)
 
+    # Вычисляем остальные точки методом Адамса
+    x_values_adams, y_values_adams = adams_2(x_values_rk[-5:], y_values_rk[-5:], h, end_x)
 
-# Вывод результатов погрешности метода Рунге в консоль
-def print_results_runge(x_values, y_values, exact_values, error_values):
-    print("{:<10} {:<25} {:<25} {:<25}".format(
-        'Отрезок', 'Уточненное (h=0.2)', 'Точное решение', 'Погрешность'))
-    
-    for x, y, exact, error in zip(x_values, y_values, exact_values, error_values):
-        print("{:<10.5f} {:<25.5f} {:<25.5f} {:<25.5f}".format(x, y, exact, error))
+    # Объединяем результаты
+    x_values_combined = x_values_rk + x_values_adams
+    y_values_combined = y_values_rk + y_values_adams
 
+    # Вычисляем точное решение
+    x_exact = np.linspace(x0, end_x, 100)
+    y_exact = exact_solution(x_exact)
 
-if __name__ == "__main__":
-    # Начальные условия
-    x0 = 1
-    y0 = np.exp(1)
-    h1 = 0.1
-    h2 = 0.2
-    end_x = 2
+    # Создаем таблицу с результатами
+    df = pd.DataFrame({
+        'x': x_values_combined,
+        'Комбинированный метод': y_values_combined,
+        'Точное решение': [exact_solution(x) for x in x_values_combined]
+    })
+    print(df)
 
-    # Решение первыми 5 точками методом Рунге-Кутта
-    x_values1, y_values1 = runge_kutta_2(x0, y0, h1, x0 + 5*h1)
-    
-    # Уточнение решения с шагом h=0.1 с использованием метода Адамса
-    x_values_adams, y_values_adams = adams_2(x_values1, y_values1, h1, end_x)
-    
-    # Вычисление точного решения для сравнения
-    exact_values = [exact_solution(x) for x in x_values1]
-
-    # Вычисление погрешности для Адамса с шагом h=0.1
-    error_values_adams = [abs(y1 - y2) for y1, y2 in zip(y_values1, y_values_adams)]
-
-    # Вывод результатов в консоль
-    print_results(x_values1, y_values1, y_values_adams, exact_values, error_values_adams)
-
-    # Уточнение решения методом Рунге с шагом h=0.2
-    x_values_runge, y_values_runge = runge_kutta_2(x0, y0, h2, end_x)
-    
-    # Вычисление погрешности для Рунге с шагом h=0.2
-    error_values_runge = [abs(y1 - y2) for y1, y2 in zip(y_values_runge, exact_values)]
-
-    print('\n'*2)
-
-    print_results_runge(x_values_runge, y_values_runge, exact_values, error_values_runge)
-
-    # Создание массивов данных для графиков
-    x_values_rk = x_values1  # первые 5 точек + начальная точка
-    y_values_rk = y_values1  # соответствующие значения y
-
-    x_values_adams = x_values1[-5:] + x_values_adams  # оставшиеся точки + точки Адамса
-    y_values_adams = y_values1[-5:] + y_values_adams  # соответствующие значения y
-
-    # Построение графиков
-    plt.figure(figsize=(12, 8))
-    plt.plot(x_values_rk, y_values_rk, label='Приблизительное решение (Рунге)')
-    plt.plot(x_values_adams, y_values_adams, label='Уточненное решение (Адамс)', linestyle='--')
-    plt.plot(x_values_runge, y_values_runge, label='Уточненное решение (Рунге h=0.2)', linestyle='-.')
-    plt.plot(x_values1, exact_values, label='Точное решение', linestyle='-')
-    plt.title('Решение задачи Коши для ОДУ с учетом погрешности')
+    # Строим графики
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_exact, y_exact, label='Точное решение', color='blue')
+    plt.plot(x_values_combined, y_values_combined, label='Комбинированный метод', linestyle='--', marker='o', color='red')
+    plt.title('Решение задачи Коши методами Рунге-Кутта и Адамса')
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend()
